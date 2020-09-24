@@ -1,4 +1,4 @@
-//  Copyright (C) 2019  strippato@gmail.com
+//  Copyright (C) 2020  strippato@gmail.com
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
@@ -49,3 +49,5 @@ cpu.PC= 0xc000;
 
 	return 0;
 }
+
+

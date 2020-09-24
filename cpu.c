@@ -1,4 +1,4 @@
-//  Copyright (C) 2019  strippato@gmail.com
+//  Copyright (C) 2020  strippato@gmail.com
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
@@ -28,7 +28,11 @@
 // not gcc? try this
 //#define NFLAG(X) (((X) & ((uint8_t) 128)) ? 1:0)
 
+struct Tcpu cpu;
+uint8_t mem[0xFFFF];
+
 // vic http://www.zimmers.net/cbmpics/cbm/c64/vic-ii.txt
+
 
 // ISA
 // http://www.ffd2.com/fridge/docs/c64-diss.html
@@ -45,6 +49,7 @@ struct isa_t {
     uint8_t clock;
     void (*f)();
 } ISA[];
+
 
 static inline int8_t
 REL2ABS (uint8_t address)

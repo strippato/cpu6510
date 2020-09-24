@@ -1,4 +1,4 @@
-//  Copyright (C) 2019  strippato@gmail.com
+//  Copyright (C) 2020  strippato@gmail.com
 //
 //  This program is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@
 #define CPU_PAL_HZ  ( 985248.611111111)
 #define CPU_NTSC_HZ (1022727.142857143)
 
-struct {
+struct Tcpu {
 	// cpu freq
 	double freq;
 
@@ -84,20 +84,21 @@ struct {
 			uint8_t  PCH;	
 		};
 	};
-} cpu;
+};
 
-uint8_t mem[0xFFFF];
+extern struct Tcpu cpu;
+extern uint8_t mem[0xFFFF];
 
-void cpu_init  (double frq);
-void cpu_free  (void);
+extern void cpu_init  (double frq);
+extern void cpu_free  (void);
 
-void cpu_addRom (uint16_t address, char* romfile, uint16_t offset);
-void cpu_reset (void);
-void cpu_run   (void);
+extern void cpu_addRom (uint16_t address, char* romfile, uint16_t offset);
+extern void cpu_reset (void);
+extern void cpu_run   (void);
 
 // DEBUG
-void cpu_dump  (char *message);
-void cpu_FIXME (char *message);
+extern void cpu_dump  (char *message);
+extern void cpu_FIXME (char *message);
 
 
 union cpu_addr {
