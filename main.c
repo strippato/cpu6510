@@ -28,20 +28,20 @@ main (int argc, char const *argv[])
 
 	cpu_init (CPU_PAL_HZ);
 
-	//cpu_addRom (0xE000, "rom/kernal.rom", 0);	
-	//cpu_addRom (0xD000, "rom/character.rom", 0);	
-	//cpu_addRom (0xA000, "rom/basic.rom", 0);
+	cpu_addRom (0xA000, "rom/basic.rom", 0);
+	cpu_addRom (0xD000, "rom/character.rom", 0);	
+	cpu_addRom (0xE000, "rom/kernal.rom", 0);	
 
 	// see https://github.com/Klaus2m5/6502_65C02_functional_tests
 	//cpu_addRom (0x0400, "rom/6502test.bin", 0);
 
 // see nestest https://wiki.nesdev.com/w/index.php/Emulator_tests
 // http://www.qmtpro.com/~nes/misc/nestest.log
-cpu_addRom (0xc000, "rom/nestest.nes", 0x10);
+//cpu_addRom (0xc000, "rom/nestest.nes", 0x10);
 	
 	cpu_reset ();
 	
-cpu.PC= 0xc000;
+//cpu.PC= 0xc000;
 
 	cpu_run (); 
 

@@ -50,11 +50,34 @@ struct isa_t {
     void (*f)();
 } ISA[];
 
+// 0..31
+const char PETSCII[255] = { ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
+                            ' ','!',' ',' ',' ',' ',' ',' ','<','>','*',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
+                            '@','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',' ',' ',' ',' ',' ',
+                            ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
+                            ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',
+                            ' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '                                                                                    
+                           };        
 
 static inline int8_t
 REL2ABS (uint8_t address)
 {
     return (NFLAG (address)? -((address ^ 0xFF)+1):address);
+}
+
+// debug
+// simple video dump @$0400
+void debug_videodump(void)
+{
+    printf("Dumping video\n");
+    for (int l=0; l<24; l++) {    
+        for (int c=0; c<40; c++) {
+            char chr =  PETSCII[mem[0x0400 + c + l * 40]];
+            printf("%c", chr);
+        }
+        printf("\n");
+    }
+    printf("Dumped!\n");    
 }
 
 void 
@@ -877,8 +900,16 @@ cpu_STA_IND_X (void)
 void
 cpu_STA_IND_Y (void)
 {
-    printf("FIXME PLZ  \n"); // come sopra
-    mem[mem[cpu.PC+1]+cpu.Y] = cpu.A;
+    //printf("FIXME PLZ  \n"); // come sopra
+    union cpu_addr addr1;
+    addr1.addr = mem[cpu.PC+1] + cpu.Y;
+
+    union cpu_addr addr2;
+    addr2.addrL = mem[addr1.addr];
+    addr2.addrH = mem[addr1.addr+1];
+
+    mem[addr2.addr] = cpu.A;
+
 }
 
 void 
@@ -1375,17 +1406,18 @@ cpu_addRom (uint16_t address, char* romfile, uint16_t offset)
 void
 cpu_run (void)
 {
-    unsigned long int nloop = 1200; // CYCL 2595 ok
+    //unsigned long int nloop = 1200; // CYCL 2595 ok
+    long long int nloop = -1;
     struct timespec now; 
 
-	while (nloop-- >= 1) {
-    //while (1) {
+	while (nloop-- != 0) {
 
         // fetch and decode
 		cpu.IR = mem[cpu.PC];
 
         // DEBUG
         cpu_dump ("FD:");
+        //debug_videodump();
 
 		// execute
 		ISA[cpu.IR].f ();
@@ -1422,10 +1454,12 @@ cpu_reset (void)
 {
 	//https://www.c64-wiki.com/wiki/Reset_(Process)
 	//http://commodore64.se/wiki/index.php/Commodore_64_ROM_Addresses
-    cpu.cycle = 7; // was 6 or 7? 
+    cpu.cycle = 6; // was 6 or 7? 
 
 	cpu.PCL = mem[0xFFFC]; // E2
 	cpu.PCH = mem[0xFFFD]; // FC
+
+    // not really set on 0 at softreset (maybe on hardreset?)
     cpu.A      = 0x00;
     cpu.X      = 0x00;       
     cpu.Y      = 0x00;           
@@ -1477,19 +1511,16 @@ cpu_dump (char *message)
         printf ("   ");
     }
 
-    printf (" IR:%02X (%c%c%c,%01i)", cpu.IR, ISA[cpu.IR].opcode[0], ISA[cpu.IR].opcode[1], ISA[cpu.IR].opcode[2], ISA[cpu.IR].ist_len) ;
-
+    //printf (" IR:%02X (%c%c%c,%01i)", cpu.IR, ISA[cpu.IR].opcode[0], ISA[cpu.IR].opcode[1], ISA[cpu.IR].opcode[2], ISA[cpu.IR].ist_len) ;
+    printf (" (%c%c%c,%01i)", ISA[cpu.IR].opcode[0], ISA[cpu.IR].opcode[1], ISA[cpu.IR].opcode[2], ISA[cpu.IR].ist_len) ;
 
 	printf (" A:%02X", cpu.A);
 	printf (" X:%02X", cpu.X);
 	printf (" Y:%02X", cpu.Y);
 
-	printf (" P:%02X", cpu.P.P);
-
 	printf (" SP:%02X", cpu.SP);
 
-    printf (" ");
-
+    printf (" P:%02X ", cpu.P.P);
 	printf ("%c", (cpu.P.N == 1 ? 'N':'n'));
 	printf ("%c", (cpu.P.V == 1 ? 'V':'v'));
 	printf ("%c", (cpu.P.X == 1 ? '-':'_'));
@@ -1506,4 +1537,13 @@ cpu_dump (char *message)
 
 
 //2674
-//FIXME D031  AD 00 04  LDA $0400 = AD                  A:AC X:00 Y:69 P:27 SP:FB PPU:158, 23 CYC:2674    
+//FIXME D031  AD 00 04  LDA $0400 = AD                  A:AC X:00 Y:69 P:27 SP:FB PPU:158, 23 CYC:2674
+//
+//
+//
+//
+
+
+
+
+

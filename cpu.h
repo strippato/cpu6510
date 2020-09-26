@@ -109,5 +109,7 @@ union cpu_addr {
 	};
 };
 
+extern const char PETSCII[255];
+
 #endif // CPU_H
 
