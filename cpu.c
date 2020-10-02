@@ -74,10 +74,11 @@ void debug_videodump(void)
         for (int c=0; c<40; c++) {
             char chr =  PETSCII[mem[0x0400 + c + l * 40]];
             printf("%c", chr);
+            //printf("%i ", mem[0x0400 + c + l * 40]);
         }
         printf("\n");
     }
-    printf("Dumped!\n");    
+    printf("Dumped!\n");
 }
 
 void 
@@ -334,6 +335,12 @@ cpu_CLD (void)
 }
 
 void
+cpu_CLI (void)
+{
+    cpu.P.I = 0;
+}
+
+void
 cpu_CLV (void)
 {
     cpu.P.V = 0;   
@@ -490,7 +497,22 @@ cpu_JMP_ABS (void)
     cpu.PCH = oph;
 }
 
-void 
+
+void
+cpu_JMP_IND (void)
+{
+
+    union cpu_addr addr;
+    addr.addrL = mem[cpu.PC+1];
+    addr.addrH = mem[cpu.PC+2];
+
+    cpu.PCL = mem[addr.addr];
+    cpu.PCH = mem[addr.addr+1];
+
+}
+
+
+void
 cpu_LDA_ABS (void) 
 {
     union cpu_addr addr;
@@ -679,6 +701,18 @@ void
 cpu_LDY (void)
 {
     cpu.Y = mem[cpu.PC+1];
+    cpu.P.Z = ZFLAG (cpu.Y);
+    cpu.P.N = NFLAG (cpu.Y);
+}
+
+void
+cpu_LDY_ABS (void)
+{
+    union cpu_addr addr;
+    addr.addrL = mem[cpu.PC+1];
+    addr.addrH = mem[cpu.PC+2];
+    cpu.Y = mem[addr.addr];
+
     cpu.P.Z = ZFLAG (cpu.Y);
     cpu.P.N = NFLAG (cpu.Y);
 }
@@ -1174,7 +1208,7 @@ struct isa_t ISA[] = {
     { "---", 1, 1, 1, cpu_FIXME},           // 0x55
 	{ "---", 1, 1, 1, cpu_FIXME},           // 0x56
     { "---", 1, 1, 1, cpu_FIXME},           // 0x57
-    { "---", 1, 1, 1, cpu_FIXME},           // 0x58
+    { "CLI", 1, 1, 2, cpu_CLI  },           // 0x58 CLI
     { "---", 1, 1, 1, cpu_FIXME},           // 0x59
     { "---", 1, 1, 1, cpu_FIXME},           // 0x5A
     { "---", 1, 1, 1, cpu_FIXME},           // 0x5B
@@ -1195,7 +1229,7 @@ struct isa_t ISA[] = {
     { "ADC", 2, 2, 2, cpu_ADC_IMM},         // 0x69 ADC  Add Memory to Accumulator with Carry
     { "ROR", 1, 1, 2, cpu_ROR  },           // 0x6A ROR  Rotate One Bit Right Accumulator
     { "---", 1, 1, 1, cpu_FIXME},           // 0x6B
-    { "---", 1, 1, 1, cpu_FIXME},           // 0x6C
+    { "JMP", 3, 3, 5, cpu_JMP_IND},         // 0x6C JMP Jump indirect
     { "---", 1, 1, 1, cpu_FIXME},           // 0x6D
     { "---", 1, 1, 1, cpu_FIXME},           // 0x6E
     { "---", 1, 1, 1, cpu_FIXME},           // 0x6F
@@ -1263,7 +1297,7 @@ struct isa_t ISA[] = {
     { "LDA", 2, 2, 2, cpu_LDA_IMM},         // 0xA9 LDA  Load Accumulator with Memory
     { "TAX", 1, 1, 2, cpu_TAX  },           // 0xAA TAX  Transfer Accumulator to Index X
     { "---", 1, 1, 1, cpu_FIXME},           // 0xAB
-    { "---", 1, 1, 1, cpu_FIXME},           // 0xAC
+    { "LDY", 3, 3, 4, cpu_LDY_ABS},         // 0xAC LDY  Load index Y with memory
     { "LDA", 3, 3, 4, cpu_LDA_ABS},         // 0xAD LDA  Load Accumulator with Memory
     { "LDX", 3, 3, 4, cpu_LDX_ABS},         // 0xAE LDX  Load Index X with Memory
     { "---", 1, 1, 1, cpu_FIXME},           // 0xAF
@@ -1406,18 +1440,19 @@ cpu_addRom (uint16_t address, char* romfile, uint16_t offset)
 void
 cpu_run (void)
 {
-    //unsigned long int nloop = 1200; // CYCL 2595 ok
-    long long int nloop = -1;
-    struct timespec now; 
+  unsigned long int nloop = 11800; // CYCL 2595 ok
+  //long long int nloop = -1;
+  struct timespec now;
 
-	while (nloop-- != 0) {
+  while (nloop-- != 0) {
 
-        // fetch and decode
-		cpu.IR = mem[cpu.PC];
+    // fetch and decode
+	  cpu.IR = mem[cpu.PC];
 
-        // DEBUG
-        cpu_dump ("FD:");
-        //debug_videodump();
+    // DEBUG
+mem[0xD012] = 0;
+cpu_dump ("FD:");
+//debug_videodump();
 
 		// execute
 		ISA[cpu.IR].f ();
@@ -1456,17 +1491,17 @@ cpu_reset (void)
 	//http://commodore64.se/wiki/index.php/Commodore_64_ROM_Addresses
     cpu.cycle = 6; // was 6 or 7? 
 
-	cpu.PCL = mem[0xFFFC]; // E2
-	cpu.PCH = mem[0xFFFD]; // FC
+	  cpu.PCL = mem[0xFFFC]; // E2
+	  cpu.PCH = mem[0xFFFD]; // FC
 
     // not really set on 0 at softreset (maybe on hardreset?)
     cpu.A      = 0x00;
     cpu.X      = 0x00;       
     cpu.Y      = 0x00;           
-	cpu.IR     = 0x00;
+	  cpu.IR     = 0x00;
 
-	cpu.SP     = 0xFD;       // implicit on 0x01 page
-	cpu.P.P    = 0b00100100; 
+	  cpu.SP     = 0xFD;       // implicit on 0x01 page
+	  cpu.P.P    = 0b00100100;
 
     mem[0x0000] = 0x2F;
     mem[0x0001] = 0x37;
@@ -1511,26 +1546,25 @@ cpu_dump (char *message)
         printf ("   ");
     }
 
-    //printf (" IR:%02X (%c%c%c,%01i)", cpu.IR, ISA[cpu.IR].opcode[0], ISA[cpu.IR].opcode[1], ISA[cpu.IR].opcode[2], ISA[cpu.IR].ist_len) ;
     printf (" (%c%c%c,%01i)", ISA[cpu.IR].opcode[0], ISA[cpu.IR].opcode[1], ISA[cpu.IR].opcode[2], ISA[cpu.IR].ist_len) ;
 
-	printf (" A:%02X", cpu.A);
-	printf (" X:%02X", cpu.X);
-	printf (" Y:%02X", cpu.Y);
+    printf (" A:%02X", cpu.A);
+    printf (" X:%02X", cpu.X);
+    printf (" Y:%02X", cpu.Y);
 
-	printf (" SP:%02X", cpu.SP);
+    printf (" SP:%02X", cpu.SP);
 
     printf (" P:%02X ", cpu.P.P);
-	printf ("%c", (cpu.P.N == 1 ? 'N':'n'));
-	printf ("%c", (cpu.P.V == 1 ? 'V':'v'));
-	printf ("%c", (cpu.P.X == 1 ? '-':'_'));
-	printf ("%c", (cpu.P.B == 1 ? 'B':'b'));
-	printf ("%c", (cpu.P.D == 1 ? 'D':'d'));
-	printf ("%c", (cpu.P.I == 1 ? 'I':'i'));
-	printf ("%c", (cpu.P.Z == 1 ? 'Z':'z'));
-	printf ("%c", (cpu.P.C == 1 ? 'C':'c'));
+    printf ("%c", (cpu.P.N == 1 ? 'N':'n'));
+    printf ("%c", (cpu.P.V == 1 ? 'V':'v'));
+    printf ("%c", (cpu.P.X == 1 ? '-':'_'));
+    printf ("%c", (cpu.P.B == 1 ? 'B':'b'));
+    printf ("%c", (cpu.P.D == 1 ? 'D':'d'));
+    printf ("%c", (cpu.P.I == 1 ? 'I':'i'));
+    printf ("%c", (cpu.P.Z == 1 ? 'Z':'z'));
+    printf ("%c", (cpu.P.C == 1 ? 'C':'c'));
 
-	printf (" CYC:%lu\n", cpu.cycle);
+    printf (" CYC:%lu\n", cpu.cycle);
 }
 
 //D01C  AD 00 02  LDA $0200 = AA                  A:AD X:00 Y:69 P:A5 SP:FB PPU: 86, 23 CYC:2650
